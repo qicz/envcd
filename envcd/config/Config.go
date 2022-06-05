@@ -17,15 +17,24 @@
 
 package config
 
-// StoreCenter the data store center
-type StoreCenter interface {
-	Kind() string
-	// Servers with standard URL: etcd://user:123@localhost:123
-	// the schema is the kind of the center
-	Servers() []string
-}
+type StoreServerKind string
+
+const (
+	MySQL                   StoreServerKind = "MySQL"
+	SameWithEtcdSyncWorker  StoreServerKind = "SameWithEtcdSyncWorker"
+	SameWithRedisSyncWorker StoreServerKind = "SameWithRedisSyncWorker"
+)
 
 // EnvcdConfig the envcd config
 type EnvcdConfig struct {
-	StoreCenter *StoreCenter
+	// StoreServer kind:
+	// MySQL
+	// SameWithEtcdSyncWorker
+	// SameWithRedisSyncWorker
+	StoreServerKind StoreServerKind
+	// StoreServerConnection connection info
+	StoreServerConnection string
+	// the data sync workers with standard URL: etcd://user:password@host:port
+	// the schema is the kind of the config, redis or etcd
+	SyncWorkers []string
 }

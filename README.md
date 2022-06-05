@@ -11,3 +11,20 @@ environment configurations detector/discovery/dictionary
 
 ![Envcd Architecture](envcd.png)
 
+## features
+- user & data permission
+  - user & admin console
+  - application data sync permission
+- openapi support
+- data version control
+- sync mode
+  - sync to env
+  - sync to application
+  - based on redis or etcd
+- multi store
+  - mysql
+  - redis
+  - etcd
+  - ...
+- sidecar
+- 
