@@ -19,17 +19,23 @@ package openapi
 
 import (
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/acmestack/envcd/internal/core/plugin"
 	"github.com/acmestack/envcd/internal/core/plugin/logging"
 	"github.com/acmestack/envcd/internal/core/plugin/permission"
 	"github.com/acmestack/envcd/internal/core/plugin/response"
+	"github.com/acmestack/envcd/internal/core/service/routers"
 	"github.com/acmestack/envcd/internal/core/storage"
 	"github.com/acmestack/envcd/internal/envcd"
+	"github.com/acmestack/envcd/internal/pkg/config"
 	"github.com/acmestack/envcd/internal/pkg/context"
 	"github.com/acmestack/envcd/internal/pkg/executor"
 	"github.com/acmestack/envcd/pkg/entity/data"
 	"github.com/acmestack/godkits/gox/errorsx"
+	"github.com/acmestack/godkits/log"
+	"github.com/gin-gonic/gin"
 )
 
 type Openapi struct {
@@ -38,7 +44,7 @@ type Openapi struct {
 	executors []executor.Executor
 }
 
-func Start(envcd *envcd.Envcd, storage *storage.Storage) {
+func Start(serverSetting *config.Server, envcd *envcd.Envcd, storage *storage.Storage) {
 	openapi := &Openapi{
 		envcd:     envcd,
 		storage:   storage,
@@ -46,7 +52,34 @@ func Start(envcd *envcd.Envcd, storage *storage.Storage) {
 	}
 	// sort plugin
 	plugin.Sort(openapi.executors)
+	openapi.initServer(serverSetting)
 	openapi.openRouter()
+}
+
+func (openapi *Openapi) initServer(serverSetting *config.Server) {
+	gin.SetMode(serverSetting.RunMode)
+
+	routersInit := routers.InitRouter()
+	readTimeout := serverSetting.ReadTimeout
+	writeTimeout := serverSetting.WriteTimeout
+	endPoint := fmt.Sprintf(":%d", serverSetting.HttpPort)
+	maxHeaderBytes := 1 << 20
+
+	server := &http.Server{
+		Addr:           endPoint,
+		Handler:        routersInit,
+		ReadTimeout:    time.Duration(readTimeout),
+		WriteTimeout:   time.Duration(writeTimeout),
+		MaxHeaderBytes: maxHeaderBytes,
+	}
+
+	log.Info("[info] start http server listening %s", endPoint)
+
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Error("service error %v", err)
+		return
+	}
 }
 
 // todo open Router
@@ -61,4 +94,12 @@ func (openapi *Openapi) openRouter() {
 	if ret, err := plugin.NewChain(openapi.executors).Execute(c); err != nil {
 		fmt.Printf("ret = %v, error = %v", ret, err)
 	}
+
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+
+	// user auth
+	r.POST("/login", newUserApi(openapi.envcd, openapi.executors).login)
+	r.Run()
 }

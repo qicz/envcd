@@ -19,21 +19,22 @@ package service
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/acmestack/envcd/internal/core/service/routers"
 	"github.com/acmestack/envcd/internal/pkg/config"
 	"github.com/acmestack/godkits/log"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"time"
 )
 
-func Start(envcdConfig *config.Config) {
-	gin.SetMode(envcdConfig.ServerSetting.RunMode)
+func Start(serverSetting *config.Server) {
+	gin.SetMode(serverSetting.RunMode)
 
 	routersInit := routers.InitRouter()
-	readTimeout := envcdConfig.ServerSetting.ReadTimeout
-	writeTimeout := envcdConfig.ServerSetting.WriteTimeout
-	endPoint := fmt.Sprintf(":%d", envcdConfig.ServerSetting.HttpPort)
+	readTimeout := serverSetting.ReadTimeout
+	writeTimeout := serverSetting.WriteTimeout
+	endPoint := fmt.Sprintf(":%d", serverSetting.HttpPort)
 	maxHeaderBytes := 1 << 20
 
 	server := &http.Server{
