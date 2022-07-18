@@ -100,6 +100,6 @@ func (openapi *Openapi) openRouter() {
 	r.Use(gin.Recovery())
 
 	// user auth
-	r.POST("/login", newUserApi(openapi.envcd, openapi.executors).login)
+	r.POST("/login", openapi.logins())
 	r.Run()
 }

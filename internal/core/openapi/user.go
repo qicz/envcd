@@ -40,6 +40,19 @@ func newUserApi(envcd *envcd.Envcd, executors []executor.Executor) *UserApi {
 	return api
 }
 
+func (openapi *Openapi) logins() func(g *gin.Context) {
+	return func(g *gin.Context) {
+		c := &context.Context{Action: func() (*data.EnvcdResult, error) {
+			fmt.Println("hello world")
+			openapi.envcd.Put("key", "value")
+			return nil, errorsx.Err("test error")
+		}}
+		if ret, err := plugin.NewChain(openapi.executors).Execute(c); err != nil {
+			fmt.Printf("ret = %v, error = %v", ret, err)
+		}
+	}
+}
+
 func (userapi *UserApi) login(ctx *gin.Context) {
 	c := &context.Context{Action: func() (*data.EnvcdResult, error) {
 		fmt.Println("hello world")
