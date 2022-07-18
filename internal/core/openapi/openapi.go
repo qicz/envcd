@@ -26,14 +26,10 @@ import (
 	"github.com/acmestack/envcd/internal/core/plugin/logging"
 	"github.com/acmestack/envcd/internal/core/plugin/permission"
 	"github.com/acmestack/envcd/internal/core/plugin/response"
-	"github.com/acmestack/envcd/internal/core/service/routers"
 	"github.com/acmestack/envcd/internal/core/storage"
 	"github.com/acmestack/envcd/internal/envcd"
 	"github.com/acmestack/envcd/internal/pkg/config"
-	"github.com/acmestack/envcd/internal/pkg/context"
 	"github.com/acmestack/envcd/internal/pkg/executor"
-	"github.com/acmestack/envcd/pkg/entity/data"
-	"github.com/acmestack/godkits/gox/errorsx"
 	"github.com/acmestack/godkits/log"
 	"github.com/gin-gonic/gin"
 )
@@ -53,27 +49,19 @@ func Start(serverSetting *config.Server, envcd *envcd.Envcd, storage *storage.St
 	// sort plugin
 	plugin.Sort(openapi.executors)
 	openapi.initServer(serverSetting)
-	openapi.openRouter()
 }
 
 func (openapi *Openapi) initServer(serverSetting *config.Server) {
 	gin.SetMode(serverSetting.RunMode)
-
-	routersInit := routers.InitRouter()
-	readTimeout := serverSetting.ReadTimeout
-	writeTimeout := serverSetting.WriteTimeout
-	endPoint := fmt.Sprintf(":%d", serverSetting.HttpPort)
-	maxHeaderBytes := 1 << 20
-
 	server := &http.Server{
-		Addr:           endPoint,
-		Handler:        routersInit,
-		ReadTimeout:    time.Duration(readTimeout),
-		WriteTimeout:   time.Duration(writeTimeout),
-		MaxHeaderBytes: maxHeaderBytes,
+		Addr:           fmt.Sprintf(":%d", serverSetting.HttpPort),
+		Handler:        openapi.buildRouter(),
+		ReadTimeout:    time.Duration(serverSetting.ReadTimeout),
+		WriteTimeout:   time.Duration(serverSetting.WriteTimeout),
+		MaxHeaderBytes: 1 << 20,
 	}
 
-	log.Info("[info] start http server listening %s", endPoint)
+	log.Info("[info] start http server listening %s", server.Addr)
 
 	err := server.ListenAndServe()
 	if err != nil {
@@ -82,24 +70,10 @@ func (openapi *Openapi) initServer(serverSetting *config.Server) {
 	}
 }
 
-// todo open Router
-func (openapi *Openapi) openRouter() {
-	// fixme: plugin.NewChain(openapi.executors) for peer request
-	// plugin.NewChain(openapi.executors)
-	c := &context.Context{Action: func() (*data.EnvcdResult, error) {
-		fmt.Println("hello world")
-		// openapi.envcd.Put("key", "value")
-		return nil, errorsx.Err("test error")
-	}}
-	if ret, err := plugin.NewChain(openapi.executors).Execute(c); err != nil {
-		fmt.Printf("ret = %v, error = %v", ret, err)
-	}
-
-	r := gin.New()
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
-
+// todo build Router
+func (openapi *Openapi) buildRouter() *gin.Engine {
+	router := gin.Default()
 	// user auth
-	r.POST("/login", openapi.logins())
-	r.Run()
+	router.POST("/login", openapi.login)
+	return router
 }

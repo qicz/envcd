@@ -21,45 +21,19 @@ import (
 	"fmt"
 
 	"github.com/acmestack/envcd/internal/core/plugin"
-	"github.com/acmestack/envcd/internal/envcd"
 	"github.com/acmestack/envcd/internal/pkg/context"
-	"github.com/acmestack/envcd/internal/pkg/executor"
 	"github.com/acmestack/envcd/pkg/entity/data"
 	"github.com/acmestack/godkits/gox/errorsx"
 	"github.com/gin-gonic/gin"
 )
 
-type UserApi struct {
-	Openapi
-}
-
-func newUserApi(envcd *envcd.Envcd, executors []executor.Executor) *UserApi {
-	api := &UserApi{}
-	api.envcd = envcd
-	api.executors = executors
-	return api
-}
-
-func (openapi *Openapi) logins() func(g *gin.Context) {
-	return func(g *gin.Context) {
-		c := &context.Context{Action: func() (*data.EnvcdResult, error) {
-			fmt.Println("hello world")
-			openapi.envcd.Put("key", "value")
-			return nil, errorsx.Err("test error")
-		}}
-		if ret, err := plugin.NewChain(openapi.executors).Execute(c); err != nil {
-			fmt.Printf("ret = %v, error = %v", ret, err)
-		}
-	}
-}
-
-func (userapi *UserApi) login(ctx *gin.Context) {
+func (openapi *Openapi) login(ctx *gin.Context) {
 	c := &context.Context{Action: func() (*data.EnvcdResult, error) {
 		fmt.Println("hello world")
-		userapi.envcd.Put("key", "value")
+		openapi.envcd.Put("key", "value")
 		return nil, errorsx.Err("test error")
 	}}
-	if ret, err := plugin.NewChain(userapi.executors).Execute(c); err != nil {
+	if ret, err := plugin.NewChain(openapi.executors).Execute(c); err != nil {
 		fmt.Printf("ret = %v, error = %v", ret, err)
 	}
 }
